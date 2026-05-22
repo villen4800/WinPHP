@@ -1,6 +1,8 @@
 # ⚡ WinPHP Control Center
 
-WinPHP Control Center is a premium, modern, and high-DPI aware desktop administration console for managing your local WAMP (Windows, Apache/Nginx, MySQL, PHP) development stack. Built using Python and Tkinter, it features a sleek dark-mode user interface designed for high-resolution displays.
+WinPHP Control Center is a premium, modern, and high-DPI aware desktop administration console for managing your local WAMP (Windows, Apache/Nginx, MariaDB/MySQL, PHP) development stack. Built using Python and Tkinter, it features a sleek dark-mode user interface designed for high-resolution displays.
+
+[![Download Standalone App](https://img.shields.io/badge/Download-Standalone%20App%20(v1.2)-3b82f6?style=for-the-badge&logo=windows)](https://github.com/villen4800/WinPHP/releases/download/1.2/WinPHP.exe)
 
 ---
 
