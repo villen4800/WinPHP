@@ -1,0 +1,33 @@
+2026/05/22 15:28:36 [error] 2608#11988: *7 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "127.0.0.1"
+2026/05/22 15:28:40 [notice] 9932#5416: signal process started
+2026/05/22 15:29:09 [error] 3840#10012: *4 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /phpmyadmin/ HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "localhost", referrer: "http://127.0.0.1:5000/"
+2026/05/22 15:30:23 [error] 3840#10012: *28 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /phpmyadmin/ HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "localhost"
+2026/05/22 15:31:15 [notice] 7628#11724: signal process started
+2026/05/22 15:35:54 [notice] 1416#3228: signal process started
+2026/05/22 15:38:25 [error] 10312#11592: *8 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET / HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "localhost"
+2026/05/22 15:38:38 [error] 10312#11592: *8 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /index.php HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "localhost"
+2026/05/22 15:39:34 [error] 10312#11592: *8 connect() failed (10061: No connection could be made because the target machine actively refused it) while connecting to upstream, client: 127.0.0.1, server: localhost, request: "GET /index.php HTTP/1.1", upstream: "fastcgi://127.0.0.1:9000", host: "localhost"
+2026/05/22 15:39:41 [notice] 3568#7552: signal process started
+2026/05/22 15:41:01 [notice] 2572#10612: signal process started
+2026/05/22 15:44:28 [notice] 10456#4844: signal process started
+2026/05/22 15:49:23 [notice] 11304#10428: signal process started
+2026/05/22 16:16:34 [notice] 10032#3588: signal process started
+2026/05/22 16:42:16 [error] 14876#13488: *4 directory index of "C:/Users/YK/Desktop/winphp/www/New folder/" is forbidden, client: 127.0.0.1, server: localhost, request: "GET /New%20folder/ HTTP/1.1", host: "localhost"
+2026/05/22 16:42:22 [notice] 12264#13912: signal process started
+2026/05/22 16:42:31 [notice] 12404#12116: signal process started
+2026/05/22 20:16:31 [notice] 9448#4552: signal process started
+2026/05/22 20:16:31 [error] 9448#4552: CreateFile() "C:\Users\YK\Desktop\winphp\bin\nginx/logs/nginx.pid" failed (2: The system cannot find the file specified)
+2026/05/22 20:16:33 [notice] 10092#12484: signal process started
+2026/05/22 20:16:33 [error] 10092#12484: CreateFile() "C:\Users\YK\Desktop\winphp\bin\nginx/logs/nginx.pid" failed (2: The system cannot find the file specified)
+2026/05/22 20:16:34 [notice] 6196#9168: signal process started
+2026/05/22 20:16:34 [error] 6196#9168: CreateFile() "C:\Users\YK\Desktop\winphp\bin\nginx/logs/nginx.pid" failed (2: The system cannot find the file specified)
+2026/05/22 20:16:35 [notice] 11716#8560: signal process started
+2026/05/22 20:16:35 [error] 11716#8560: CreateFile() "C:\Users\YK\Desktop\winphp\bin\nginx/logs/nginx.pid" failed (2: The system cannot find the file specified)
+2026/05/22 20:16:46 [notice] 1580#7756: signal process started
+2026/05/22 20:16:46 [error] 1580#7756: CreateFile() "C:\Users\YK\Desktop\winphp\bin\nginx/logs/nginx.pid" failed (2: The system cannot find the file specified)
+2026/05/22 23:06:18 [notice] 2420#5708: signal process started
+2026/05/22 23:06:27 [notice] 9684#8120: signal process started
+2026/05/22 23:06:27 [error] 9684#8120: CreateFile() "C:\Users\YK\Desktop\winphp\bin\nginx/logs/nginx.pid" failed (2: The system cannot find the file specified)
+2026/05/22 23:36:08 [notice] 7552#6436: signal process started
+2026/05/23 00:10:23 [notice] 2540#12916: signal process started
+2026/05/23 01:22:32 [notice] 12252#2544: signal process started
