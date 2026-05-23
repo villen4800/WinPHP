@@ -75,7 +75,7 @@ DETACHED_FLAGS = subprocess.DETACHED_PROCESS | 0x02000000  # DETACHED_PROCESS | 
 
 DEFAULT_PORTS = {
     'nginx': 80,
-    'apache': 8080,
+    'apache': 80,
     'mysql': 3306,
     'php': 9000
 }
@@ -263,6 +263,26 @@ def get_pid_memory(pid):
         pass
     return 0
 
+PROCESS_NAMES = {
+    'nginx': 'nginx.exe',
+    'apache': 'httpd.exe',
+    'mysql': 'mysqld.exe',
+    'php': 'php-cgi.exe'
+}
+
+def is_process_running_by_name(image_name):
+    if not image_name:
+        return False
+    try:
+        out = subprocess.check_output(
+            ["tasklist", "/NH", "/FI", f"IMAGENAME eq {image_name}"],
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            text=True
+        )
+        return image_name.lower() in out.lower()
+    except Exception:
+        return False
+
 def get_service_status(name):
     pids = load_pids()
     pid = pids.get(name)
@@ -270,7 +290,8 @@ def get_service_status(name):
     port = PORTS.get(name)
     port_active = is_port_open(port) if port else False
     
-    is_running = port_active or (is_pid_running(pid) if pid else False)
+    img_name = PROCESS_NAMES.get(name)
+    is_running = (is_pid_running(pid) if pid else False) or (is_process_running_by_name(img_name) and port_active)
     
     if is_running:
         if not pid and name == 'nginx':
@@ -923,7 +944,8 @@ http {{
                 apache_path_esc = apache_dir.replace('\\', '/')
                 content = content.replace('Define SRVROOT "C:/Apache24"', f'Define SRVROOT "{apache_path_esc}"')
                 content = content.replace('Define SRVROOT "c:/Apache24"', f'Define SRVROOT "{apache_path_esc}"')
-                content = content.replace('Listen 80', f'Listen {PORTS["apache"]}')
+                import re
+                content = re.sub(r'\bListen\s+80\b', f'Listen {PORTS["apache"]}', content)
                 
                 www_path_esc = WWW_DIR.replace('\\', '/')
                 content = content.replace('DocumentRoot "${SRVROOT}/htdocs"', f'DocumentRoot "{www_path_esc}"')
@@ -938,7 +960,8 @@ http {{
                     php_proxy_setup = f"""
 # PHP FastCGI proxy setup
 <FilesMatch \\.php$>
-    SetHandler "proxy:fcgi://127.0.0.1:{PORTS['php']}"
+    ProxyFCGIBackendType GENERIC
+    SetHandler "proxy:fcgi://127.0.0.1:{PORTS['php']}//./"
 </FilesMatch>
 
 Alias /phpmyadmin "{phpmyadmin_path_esc}"
@@ -2961,9 +2984,18 @@ class WinPHPApp(QMainWindow):
                 QMessageBox.critical(self, "Validation Error", f"Port for {name.upper()} must be between 1 and 65535.")
                 return
                 
-        ports_list = list(new_ports.values())
-        if len(ports_list) != len(set(ports_list)):
-            QMessageBox.warning(self, "Warning", "Assigning the same port to multiple services might cause conflicts.")
+        # Check for real conflicts (non-mutually-exclusive services sharing ports)
+        conflict_detected = False
+        non_web_ports = [new_ports['mysql'], new_ports['php']]
+        web_ports = [new_ports['nginx'], new_ports['apache']]
+        
+        if len(non_web_ports) != len(set(non_web_ports)):
+            conflict_detected = True
+        elif any(p in web_ports for p in non_web_ports):
+            conflict_detected = True
+            
+        if conflict_detected:
+            QMessageBox.warning(self, "Warning", "Assigning the same port to non-compatible services (like Web Server and Database/PHP) will cause conflicts.")
             
         global PORTS
         old_ports = PORTS.copy()
