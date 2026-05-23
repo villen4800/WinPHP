@@ -29,11 +29,13 @@ WinPHP Control Center is a premium, modern, and high-DPI aware desktop administr
 - **MariaDB:** 11.4.11 - 12.3.1
 - **PHP:** 7.4.33-nts - 8.5.6-nts
 - **phpMyAdmin:** 4.9.11 - 5.2.3
+
+
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-To run or build the application from source, you need:
+To run you need:
 
 1. **Python 3.10+** (tested on Python 3.14)
 2. Python dependencies:
@@ -53,5 +55,3 @@ python app.py
 ## 🔧 Customization
 
 All service settings (such as custom port allocations, system status loop timings, and active server preferences) are stored dynamically within the local configuration schema to maintain persistence across sessions.
-
----
