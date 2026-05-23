@@ -680,8 +680,8 @@ AVAILABLE_VERSIONS = {
         'apache-2.4.58': 'https://www.apachelounge.com/download/VS17/binaries/httpd-2.4.58-win64-VS17.zip'
     },
     'mysql': {
-        'mariadb-10.11.8': 'https://downloads.mariadb.com/MariaDB/mariadb-10.11.8/winx64-packages/mariadb-10.11.8-winx64.zip',
-        'mariadb-11.4.2': 'https://downloads.mariadb.com/MariaDB/mariadb-11.4.2/winx64-packages/mariadb-11.4.2-winx64.zip'
+        'mariadb-10.11.8': 'https://archive.mariadb.org/mariadb-10.11.8/winx64-packages/mariadb-10.11.8-winx64.zip',
+        'mariadb-11.4.2': 'https://archive.mariadb.org/mariadb-11.4.2/winx64-packages/mariadb-11.4.2-winx64.zip'
     },
     'phpmyadmin': {
         'phpmyadmin-5.2.3': 'https://files.phpmyadmin.net/phpMyAdmin/5.2.3/phpMyAdmin-5.2.3-all-languages.zip'
@@ -715,6 +715,134 @@ def save_installed_packages(installed):
             json.dump(installed, f, indent=4)
     except Exception:
         pass
+
+
+class VersionCheckWorker(QThread):
+    versions_fetched = Signal(dict)
+    
+    def run(self):
+        import urllib.request
+        import urllib.parse
+        import re
+        import json
+        
+        results = {}
+        
+        # --- PHP ---
+        try:
+            urls = [
+                'https://downloads.php.net/~windows/releases/',
+                'https://downloads.php.net/~windows/releases/archives/'
+            ]
+            php_dict = {}
+            for base_url in urls:
+                try:
+                    req = urllib.request.Request(base_url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=6) as r:
+                        html = r.read().decode('utf-8', errors='ignore')
+                    matches = re.findall(r'href="([^"]*?php-([\d\.]+)-nts-Win32-(?:vs|vc)\d+-x64\.zip)"', html)
+                    for link, ver in matches:
+                        full_url = urllib.parse.urljoin(base_url, link)
+                        parts = ver.split('.')
+                        if len(parts) >= 2:
+                            major_minor = f"{parts[0]}.{parts[1]}"
+                            if major_minor not in php_dict:
+                                php_dict[major_minor] = []
+                            php_dict[major_minor].append((ver, full_url))
+                except Exception:
+                    pass
+            
+            final_php = {}
+            for maj_min, releases in php_dict.items():
+                releases.sort(key=lambda x: [int(c) for c in x[0].split('.') if c.isdigit()], reverse=True)
+                latest_ver, latest_url = releases[0]
+                final_php[f"php-{latest_ver}-nts"] = latest_url
+                
+            if final_php:
+                sorted_keys = sorted(final_php.keys(), key=lambda x: [int(c) for c in re.findall(r'\d+', x)], reverse=True)
+                results['php'] = {k: final_php[k] for k in sorted_keys if any(v in k for v in ['8.5', '8.4', '8.3', '8.2', '8.1', '8.0', '7.4'])}
+        except Exception:
+            pass
+            
+        # --- NGINX ---
+        try:
+            req = urllib.request.Request('https://nginx.org/en/download.html', headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=6) as r:
+                html = r.read().decode('utf-8', errors='ignore')
+            matches = re.findall(r'href="([^"]+?/download/nginx-([\d\.]+)\.zip)"', html)
+            nginx_dict = {}
+            for link, ver in matches:
+                full_url = urllib.parse.urljoin('https://nginx.org/en/download.html', link)
+                nginx_dict[f"nginx-{ver}"] = full_url
+            if nginx_dict:
+                sorted_keys = sorted(nginx_dict.keys(), key=lambda x: [int(c) for c in re.findall(r'\d+', x)], reverse=True)
+                results['nginx'] = {k: nginx_dict[k] for k in sorted_keys[:3]}
+        except Exception:
+            pass
+
+        # --- Apache ---
+        try:
+            req = urllib.request.Request('https://www.apachelounge.com/download/', headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=6) as r:
+                html = r.read().decode('utf-8', errors='ignore')
+            matches = re.findall(r'href="([^"]+?/httpd-([\d\.]+)(?:-[^\"]+)?-Win64-VS\d+\.zip)"', html)
+            apache_dict = {}
+            for link, ver in matches:
+                full_url = urllib.parse.urljoin('https://www.apachelounge.com/download/', link)
+                apache_dict[f"apache-{ver}"] = full_url
+            if apache_dict:
+                sorted_keys = sorted(apache_dict.keys(), key=lambda x: [int(c) for c in re.findall(r'\d+', x)], reverse=True)
+                results['apache'] = {k: apache_dict[k] for k in sorted_keys[:3]}
+        except Exception:
+            pass
+
+        # --- MariaDB ---
+        try:
+            req = urllib.request.Request('https://downloads.mariadb.org/rest-api/mariadb/', headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=6) as r:
+                data = json.loads(r.read().decode('utf-8'))
+            major_releases = data.get('major_releases', [])
+            mysql_dict = {}
+            count = 0
+            for major in major_releases:
+                if major.get('release_status') in ('Stable', 'RC'):
+                    major_id = major.get('release_id')
+                    m_req = urllib.request.Request(f'https://downloads.mariadb.org/rest-api/mariadb/{major_id}/', headers={'User-Agent': 'Mozilla/5.0'})
+                    try:
+                        with urllib.request.urlopen(m_req, timeout=6) as mr:
+                            m_data = json.loads(mr.read().decode('utf-8'))
+                        releases = list(m_data.get('releases', {}).keys())
+                        releases.sort(key=lambda x: [int(c) for c in re.findall(r'\d+', x)], reverse=True)
+                        if releases:
+                            latest_point = releases[0]
+                            mysql_dict[f"mariadb-{latest_point}"] = f"https://archive.mariadb.org/mariadb-{latest_point}/winx64-packages/mariadb-{latest_point}-winx64.zip"
+                        count += 1
+                        if count >= 4:
+                            break
+                    except Exception:
+                        pass
+            if mysql_dict:
+                sorted_keys = sorted(mysql_dict.keys(), key=lambda x: [int(c) for c in re.findall(r'\d+', x)], reverse=True)
+                results['mysql'] = {k: mysql_dict[k] for k in sorted_keys}
+        except Exception:
+            pass
+
+        # --- phpMyAdmin ---
+        try:
+            req = urllib.request.Request('https://www.phpmyadmin.net/downloads/', headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=6) as r:
+                html = r.read().decode('utf-8', errors='ignore')
+            matches = re.findall(r'href="(https://files\.phpmyadmin\.net/phpMyAdmin/([\d\.]+)/phpMyAdmin-[\d\.]+-all-languages\.zip)"', html)
+            pma_dict = {}
+            for link, ver in matches:
+                pma_dict[f"phpmyadmin-{ver}"] = link
+            if pma_dict:
+                sorted_keys = sorted(pma_dict.keys(), key=lambda x: [int(c) for c in re.findall(r'\d+', x)], reverse=True)
+                results['phpmyadmin'] = {k: pma_dict[k] for k in sorted_keys[:2]}
+        except Exception:
+            pass
+
+        self.versions_fetched.emit(results)
 
 
 class PackageInstallWorker(QThread):
@@ -1550,6 +1678,11 @@ class WinPHPApp(QMainWindow):
         self.worker.status_updated.connect(self.on_status_updated)
         self.worker.metrics_updated.connect(self.on_metrics_updated)
         self.worker.start()
+        
+        # Start background version check worker
+        self.version_check_worker = VersionCheckWorker()
+        self.version_check_worker.versions_fetched.connect(self.on_versions_fetched)
+        self.version_check_worker.start()
         
         # System Tray setup
         self.setup_tray()
@@ -3208,6 +3341,32 @@ class WinPHPApp(QMainWindow):
         
         self.disk_bar.setValue(disk)
         self.disk_val.setText(f"{disk}%")
+
+    @Slot(dict)
+    def on_versions_fetched(self, versions):
+        if not versions:
+            return
+            
+        global AVAILABLE_VERSIONS
+        for key, new_dict in versions.items():
+            if key in AVAILABLE_VERSIONS and new_dict:
+                AVAILABLE_VERSIONS[key] = new_dict
+                
+                if hasattr(self, 'package_cards') and key in self.package_cards:
+                    card = self.package_cards[key]
+                    card.versions_dict = new_dict
+                    
+                    current_sel = card.version_combo.currentText()
+                    card.version_combo.blockSignals(True)
+                    card.version_combo.clear()
+                    card.version_combo.addItems(list(card.versions_dict.keys()))
+                    
+                    idx = card.version_combo.findText(current_sel)
+                    if idx >= 0:
+                        card.version_combo.setCurrentIndex(idx)
+                    else:
+                        card.version_combo.setCurrentIndex(0)
+                    card.version_combo.blockSignals(False)
 
     @Slot(str, str, str)
     def show_message_box_slot(self, msg_type, title, text):
