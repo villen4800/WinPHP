@@ -1,4 +1,5 @@
 # ⚡ WinPHP Control Center
+<img width="1774" height="887" alt="image" src="https://github.com/user-attachments/assets/02aaf55e-b775-41f5-a8ef-acc3f5bdfe32" />
 
 WinPHP Control Center is a premium, modern, and high-DPI aware desktop administration console for managing your local WAMP (Windows, Apache/Nginx, MariaDB/MySQL, PHP) development stack. Built using Python and PySide6 (Qt), it features a sleek dark-mode user interface designed for high-resolution displays.
 
