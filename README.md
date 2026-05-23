@@ -22,7 +22,13 @@ WinPHP Control Center is a premium, modern, and high-DPI aware desktop administr
 - **📐 High-DPI Auto-Scaling:** Automatically detects display scaling factor (125%, 150%, 200%, etc.) to scale layouts, fonts, and resource assets, preventing clipping.
 
 ---
+## 📦 Supported Stack Versions
 
+- **Apache:** 2.4.67
+- **Nginx:** 1.24.0, 1.26.3
+- **MariaDB:** 11.4.11 - 12.3.1
+- **PHP:** 7.4.33-nts - 8.5.6-nts
+- **phpMyAdmin:** 4.9.11 - 5.2.3
 ## 🚀 Getting Started
 
 ### Prerequisites
