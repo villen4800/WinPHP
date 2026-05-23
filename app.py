@@ -111,7 +111,7 @@ def update_service_port_in_config(name, old_port, new_port):
                 with open(nginx_conf, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                 import re
-                content = re.sub(rf'listen\s+{old_port}\b', f'listen       {new_port}', content)
+                content = re.sub(r'(?m)^\s*listen\s+\d+;', f'listen       {new_port};', content)
                 with open(nginx_conf, 'w', encoding='utf-8') as f:
                     f.write(content)
             except Exception as e:
@@ -124,7 +124,7 @@ def update_service_port_in_config(name, old_port, new_port):
                 with open(apache_conf, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                 import re
-                content = re.sub(rf'Listen\s+{old_port}\b', f'Listen {new_port}', content)
+                content = re.sub(r'(?m)^\s*Listen\s+\d+', f'Listen {new_port}', content)
                 with open(apache_conf, 'w', encoding='utf-8') as f:
                     f.write(content)
             except Exception as e:
@@ -137,7 +137,7 @@ def update_service_port_in_config(name, old_port, new_port):
                 with open(mysql_conf, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                 import re
-                content = re.sub(rf'port={old_port}\b', f'port={new_port}', content)
+                content = re.sub(r'(?m)^\s*port\s*=\s*\d+', f'port={new_port}', content)
                 with open(mysql_conf, 'w', encoding='utf-8') as f:
                     f.write(content)
             except Exception as e:
@@ -150,7 +150,7 @@ def update_service_port_in_config(name, old_port, new_port):
                 with open(nginx_conf, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                 import re
-                content = re.sub(rf'127\.0\.0\.1:{old_port}\b', f'127.0.0.1:{new_port}', content)
+                content = re.sub(r'127\.0\.0\.1:\d+', f'127.0.0.1:{new_port}', content)
                 with open(nginx_conf, 'w', encoding='utf-8') as f:
                     f.write(content)
             except Exception as e:
@@ -162,7 +162,7 @@ def update_service_port_in_config(name, old_port, new_port):
                 with open(apache_conf, 'r', encoding='utf-8', errors='ignore') as f:
                     content = f.read()
                 import re
-                content = re.sub(rf'127\.0\.0\.1:{old_port}\b', f'127.0.0.1:{new_port}', content)
+                content = re.sub(r'127\.0\.0\.1:\d+', f'127.0.0.1:{new_port}', content)
                 with open(apache_conf, 'w', encoding='utf-8') as f:
                     f.write(content)
             except Exception as e:
@@ -415,6 +415,57 @@ def start_php_internal(version=None):
         print(f"Error starting PHP internally: {e}")
         return False
 
+def setup_apache_internal(apache_dir):
+    httpd_conf = os.path.join(apache_dir, 'conf', 'httpd.conf')
+    if os.path.exists(httpd_conf):
+        try:
+            with open(httpd_conf, 'r') as f:
+                content = f.read()
+            
+            apache_path_esc = apache_dir.replace('\\', '/')
+            content = content.replace('Define SRVROOT "C:/Apache24"', f'Define SRVROOT "{apache_path_esc}"')
+            content = content.replace('Define SRVROOT "c:/Apache24"', f'Define SRVROOT "{apache_path_esc}"')
+            import re
+            content = re.sub(r'(?m)^\s*Listen\s+\d+', f'Listen {PORTS["apache"]}', content)
+            
+            www_path_esc = WWW_DIR.replace('\\', '/')
+            content = content.replace('DocumentRoot "${SRVROOT}/htdocs"', f'DocumentRoot "{www_path_esc}"')
+            content = content.replace('<Directory "${SRVROOT}/htdocs">', f'<Directory "{www_path_esc}">')
+            content = content.replace('DirectoryIndex index.html', 'DirectoryIndex index.php index.html')
+            
+            # Enable proxy modules
+            content = content.replace('#LoadModule proxy_module modules/mod_proxy.so', 'LoadModule proxy_module modules/mod_proxy.so')
+            content = content.replace('#LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so', 'LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so')
+            
+            # Setup PHP Proxy
+            php_proxy_setup = f"""<FilesMatch \\.php$>
+    ProxyFCGIBackendType GENERIC
+    SetHandler "proxy:fcgi://127.0.0.1:{PORTS['php']}//./"
+</FilesMatch>"""
+            
+            if re.search(r'<FilesMatch\s+[^>]*\.php[^>]*>', content):
+                content = re.sub(r'(?s)<FilesMatch\s+[^>]*\.php[^>]*>.*?</FilesMatch>', php_proxy_setup, content)
+            else:
+                content += "\n\n# PHP FastCGI proxy setup\n" + php_proxy_setup
+            
+            # Setup phpMyAdmin Alias if not present
+            if 'Alias /phpmyadmin' not in content:
+                phpmyadmin_path_esc = os.path.join(TOOLS_DIR, 'phpmyadmin').replace('\\', '/')
+                phpmyadmin_setup = f"""
+Alias /phpmyadmin "{phpmyadmin_path_esc}"
+<Directory "{phpmyadmin_path_esc}">
+    Options Indexes FollowSymLinks
+    AllowOverride All
+    Require all granted
+</Directory>
+"""
+                content += "\n" + phpmyadmin_setup
+                
+            with open(httpd_conf, 'w') as f:
+                f.write(content)
+        except Exception as e:
+            print(f"Error configuring Apache: {e}")
+
 def start_service_internal(name, php_version=None):
     status, current_pid, _ = get_service_status(name)
     if status == 'running':
@@ -428,6 +479,7 @@ def start_service_internal(name, php_version=None):
         start_php_internal(php_version)
     elif name == 'apache':
         stop_service_internal('nginx')
+        setup_apache_internal(os.path.join(BIN_DIR, 'apache'))
         start_php_internal(php_version)
         
     success = False
@@ -1063,48 +1115,7 @@ http {{
             f.write(conf_content)
 
     def setup_apache(self, apache_dir):
-        httpd_conf = os.path.join(apache_dir, 'conf', 'httpd.conf')
-        if os.path.exists(httpd_conf):
-            try:
-                with open(httpd_conf, 'r') as f:
-                    content = f.read()
-                
-                apache_path_esc = apache_dir.replace('\\', '/')
-                content = content.replace('Define SRVROOT "C:/Apache24"', f'Define SRVROOT "{apache_path_esc}"')
-                content = content.replace('Define SRVROOT "c:/Apache24"', f'Define SRVROOT "{apache_path_esc}"')
-                import re
-                content = re.sub(r'\bListen\s+80\b', f'Listen {PORTS["apache"]}', content)
-                
-                www_path_esc = WWW_DIR.replace('\\', '/')
-                content = content.replace('DocumentRoot "${SRVROOT}/htdocs"', f'DocumentRoot "{www_path_esc}"')
-                content = content.replace('<Directory "${SRVROOT}/htdocs">', f'<Directory "{www_path_esc}">')
-                content = content.replace('DirectoryIndex index.html', 'DirectoryIndex index.php index.html')
-                
-                if 'proxy_fcgi_module' not in content:
-                    content = content.replace('#LoadModule proxy_module modules/mod_proxy.so', 'LoadModule proxy_module modules/mod_proxy.so')
-                    content = content.replace('#LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so', 'LoadModule proxy_fcgi_module modules/mod_proxy_fcgi.so')
-                    
-                    phpmyadmin_path_esc = os.path.join(TOOLS_DIR, 'phpmyadmin').replace('\\', '/')
-                    php_proxy_setup = f"""
-# PHP FastCGI proxy setup
-<FilesMatch \\.php$>
-    ProxyFCGIBackendType GENERIC
-    SetHandler "proxy:fcgi://127.0.0.1:{PORTS['php']}//./"
-</FilesMatch>
-
-Alias /phpmyadmin "{phpmyadmin_path_esc}"
-<Directory "{phpmyadmin_path_esc}">
-    Options Indexes FollowSymLinks
-    AllowOverride All
-    Require all granted
-</Directory>
-"""
-                    content += php_proxy_setup
-                    
-                with open(httpd_conf, 'w') as f:
-                    f.write(content)
-            except Exception as e:
-                print(f"Error configuring Apache: {e}")
+        setup_apache_internal(apache_dir)
 
     def setup_mysql(self, mysql_dir):
         my_ini = os.path.join(mysql_dir, 'my.ini')
