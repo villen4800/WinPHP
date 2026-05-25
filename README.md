@@ -50,6 +50,8 @@ To run the application from source:
 ```bash
 python app.py
 ```
+## Screenshots
+<hide> ![Uploading {2AE0D67F-2949-43BE-9BA2-DEAC5780BAF7}.png…]() </hide>
 
 
 ## 🔧 Customization
