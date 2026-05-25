@@ -51,7 +51,11 @@ To run the application from source:
 python app.py
 ```
 ## Screenshots
-<hide> ![Uploading {2AE0D67F-2949-43BE-9BA2-DEAC5780BAF7}.png…]() </hide>
+CLI Interface 
+<img width="1532" height="1205" alt="{2AE0D67F-2949-43BE-9BA2-DEAC5780BAF7}" src="https://github.com/user-attachments/assets/82624d19-f259-4e9f-8488-abeaf4cf2810" />
+
+App Interface
+<img width="1982" height="1491" alt="{E38703BC-C20C-469F-88E9-509473617694}" src="https://github.com/user-attachments/assets/afa940fe-a18f-4792-b597-479e1bd08626" />
 
 
 ## 🔧 Customization
